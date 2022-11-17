@@ -1,0 +1,13 @@
+{
+  "miniprogramRoot": "./",
+  "projectname": "jigsaw-puzzle",
+  "description": "给儿子做的游戏！",
+  "appid": "touristappid",
+  "setting": {
+    "urlCheck": true,
+    "es6": false,
+    "postcss": false,
+    "minified": false
+  },
+  "compileType": "miniprogram"
+}
