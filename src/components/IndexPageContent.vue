@@ -1,18 +1,22 @@
 <template>
   <at-flex class="index-page-content" direction="column">
     <at-flex-item is-auto :size="1" class="title-warp">
-      <text class="title">Dinosaur puzzle</text>
+      <text class="title">Dinosaur Disturbance</text>
     </at-flex-item>
     <at-flex-item>
-      <image class="logo" src="../assets/images/IndexPageLogo.gif" />
+      <image
+        azyLoad="true"
+        class="logo"
+        src="https://pic.imgdb.cn/item/63762b9716f2c2beb18fa2f8.gif"
+      />
     </at-flex-item>
     <at-flex-item class="button-wrap">
-      <AtButton class="start-button" type="primary" @click="startGame(4)"
-        >2X2</AtButton
-      >
-      <AtButton class="start-button" type="primary" @click="startGame(9)"
-        >3X3</AtButton
-      >
+      <AtButton class="start-button" type="primary" @click="startGame(4)">
+        2X2
+      </AtButton>
+      <AtButton class="start-button" type="primary" @click="startGame(9)">
+        3X3
+      </AtButton>
     </at-flex-item>
   </at-flex>
 </template>
@@ -23,9 +27,10 @@ export default {
   setup() {
     const startGame = (param) => {
       Taro.navigateTo({
-        url: `/pages/main/index?gameType=${param}`,
+        url: `/pages/select-image/index?gameType=${param}`,
       });
     };
+
     return { startGame };
   },
 };
@@ -41,7 +46,7 @@ export default {
     text-align: center;
     .title {
       margin: 0 auto;
-      font-size: 3rem;
+      font-size: 2rem;
       transform: translate(-50%, -50%);
       text-shadow: 7px 7px orange, 12px 12px black;
       -webkit-text-fill-color: transparent;

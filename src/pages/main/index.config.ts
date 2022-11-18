@@ -1,3 +1,3 @@
 export default {
-  navigationBarTitleText: '恐龙拼图'
+  navigationBarTitleText: 'Dinosaur Disturbance'
 }

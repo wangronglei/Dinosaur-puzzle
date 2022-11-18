@@ -1,6 +1,6 @@
 <template>
   <view class="main-page">
-    <CanvasPageDrag :gameType="gameType" />
+    <CanvasPageDrag :gameType="gameType" :imgIndex="imgIndex" />
   </view>
 </template>
 
@@ -14,8 +14,8 @@ export default {
     CanvasPageDrag,
   },
   setup() {
-    const { gameType } = Taro.getCurrentInstance().router.params;
-    return { gameType };
+    const { gameType, imgIndex } = Taro.getCurrentInstance().router.params;
+    return { gameType, imgIndex };
   },
 };
 </script>

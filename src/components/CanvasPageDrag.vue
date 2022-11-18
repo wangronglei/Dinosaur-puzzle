@@ -1,12 +1,8 @@
 <template>
-  <at-flex class="canvas-content" direction="column">
+  <at-flex class="draw-content" direction="column">
     <at-flex-item is-auto :size="1" class="display-items">
-      <view class="canvas-container">
-        <canvas
-          style="width: 300px; height: 300px"
-          type="2d"
-          id="canvas-display"
-        />
+      <view class="display-container">
+        <image id="display-image" class="display-image" :src="displayUrl" />
       </view>
     </at-flex-item>
     <AtDivider content="加油哦！" fontColor="#2d8cf0" lineColor="#2d8cf0" />
@@ -16,16 +12,14 @@
           class="block-item"
           is-auto
           :size="1"
-          v-for="item in flatNumArr"
-          :key="item"
-          @touchstart="(e) => touchstart(e, item)"
+          v-for="(item, index) in blockArr"
+          :key="item.index"
+          @touchstart="(e) => touchstart(e, index)"
           @touchmove="(e) => touchmove(e, item)"
-          @touchend="(e) => touchend(e, item)"
-          ><canvas
-            style="width: 100px; height: 100px"
-            type="2d"
-            :id="`canvas-block-${item}`"
-        /></at-flex-item>
+          @touchend="(e) => touchend(e, item.index)"
+        >
+          <image class="block-image" type="2d" :src="item.url" />
+        </at-flex-item>
       </at-flex>
     </at-flex-item>
     <at-flex-item class="button-wrap">
@@ -38,14 +32,19 @@
       <image class="cover-image" :src="moveImageUrl" />
     </view>
   </at-flex>
+  <AtMessage></AtMessage>
 </template>
 
 <script>
 import Taro, { useReady } from "@tarojs/taro";
 import { ref, computed } from "vue";
+import { AtMessage } from "taro-ui-vue3";
+import { drawCanvas, generateNum } from "../lib/tools";
+import { useImageList } from "../stores/imageList";
 
 export default {
-  props: ["gameType"],
+  components: { AtMessage },
+  props: ["gameType", "imgIndex"],
   setup(props) {
     const showMovePic = ref(false);
     const movePicWrapPos = ref({ x: 0, y: 0 });
@@ -53,10 +52,17 @@ export default {
       const { x, y } = movePicWrapPos.value;
       return `top:${y}px;left:${x}px`;
     });
+
     const gameType = ref(parseInt(props.gameType));
-    const completeBlockArr = ref([]);
+    const imgIndex = ref(parseInt(props.imgIndex));
 
     let moveImageUrl = ref("");
+
+    let displayUrl = ref("");
+
+    const blockArr = ref([]);
+
+    const completeBlockArr = ref([]);
 
     const numOrigin = computed(() => {
       return gameType.value === 4
@@ -86,81 +92,11 @@ export default {
     const LAST_NUM = gameType.value === 4 ? 22 : 33;
     const W = gameType.value === 4 ? 150 : 100;
     const BOUND = gameType.value === 4 ? 1 : 2;
-    const ROW_COL_NUM = gameType.value === 4 ? 2 : 3;
 
-    const generateNum = () => {
-      //循环进行拼图打乱
-      for (let i = 0; i < 20; i++) {
-        //随机抽取其中一个数据
-        const i1 = Math.round(Math.random() * BOUND);
-        const j1 = Math.round(Math.random() * BOUND);
-        //再随机抽取其中一个数据
-        const i2 = Math.round(Math.random() * BOUND);
-        const j2 = Math.round(Math.random() * BOUND);
-        //对调它们的位置
-        const temp = num.value[i1][j1];
-        num.value[i1][j1] = num.value[i2][j2];
-        num.value[i2][j2] = temp;
-      }
-    };
+    num.value = generateNum({ num: num.value, BOUND });
 
-    generateNum();
-    let flatNumArr = num.value.flat(Infinity);
-
-    const drawCanvas = ({ canvasId, index, isDisplay = false }) => {
-      Taro.createSelectorQuery()
-        .select(`#${canvasId}`)
-        .fields({ node: true, size: true })
-        .exec((res) => {
-          const canvas = res[0].node;
-          // 图片对象
-          const image = canvas.createImage();
-          // 图片加载完成回调
-          image.onload = () => {
-            // 将图片绘制到 canvas 上
-            const ctx = canvas.getContext("2d");
-            ctx.clearRect(0, 0, W, W);
-            if (isDisplay) {
-              for (const i of completeBlockArr.value) {
-                //获取数值的十位数，即第几行
-                const row = parseInt(i / 10) - 1;
-                //获取数组的个位数，即第几列
-                const col = (i % 10) - 1;
-                //在画布的相关位置上绘图
-                ctx.drawImage(
-                  image,
-                  col * W,
-                  row * W,
-                  W,
-                  W,
-                  col * W,
-                  (row * W) / 2,
-                  W,
-                  W / 2
-                );
-              }
-            } else {
-              //获取数值的十位数，即第几行
-              const row = parseInt(index / 10) - 1;
-              //获取数组的个位数，即第几列
-              const col = (index % 10) - 1;
-              ctx.drawImage(
-                image,
-                col * W,
-                row * W,
-                W,
-                W,
-                0,
-                0,
-                canvas.width,
-                canvas.height
-              );
-            }
-          };
-          // 设置图片src
-          image.src = require("../assets/images/image1.jpeg");
-        });
-    };
+    const ImageListStore = useImageList();
+    const imageUrl = ImageListStore.imageList[imgIndex.value];
 
     const getCanvasImg = ({ canvasId }) => {
       return new Promise((resolve) => {
@@ -177,12 +113,15 @@ export default {
 
     const startDraw = () => {
       Taro.nextTick(() => {
-        num.value.flat(Infinity).forEach((item) => {
-          drawCanvas({
-            canvasId: `canvas-block-${item}`,
+        num.value.flat(Infinity).forEach(async (item) => {
+          const url = await drawCanvas({
+            width: W,
+            height: W,
             index: item,
-            isDisplay: false,
+            imageUrl,
+            W,
           });
+          blockArr.value.push({ url, index: item });
         });
       });
     };
@@ -192,14 +131,19 @@ export default {
     });
 
     const reStart = () => {
-      generateNum();
-      flatNumArr = num.value.flat(Infinity);
+      displayUrl.value = "";
+      blockArr.value = [];
+      completeBlockArr.value = [];
+      num.value = generateNum({ num: num.value, BOUND });
       startDraw();
     };
 
     const checkWin = () => {
       const itemOrigin = numOrigin.value.flat(Infinity).join("-");
       const itemCurrent = completeBlockArr.value.sort().join("-");
+
+      console.log(itemOrigin);
+      console.log(itemCurrent);
       if (itemOrigin !== itemCurrent) {
         return false;
       }
@@ -209,7 +153,7 @@ export default {
     const getDisplayBound = () => {
       return new Promise((resolve) => {
         Taro.createSelectorQuery()
-          .select("#canvas-display")
+          .select("#display-image")
           .boundingClientRect()
           .exec((res) => {
             const bound = res[0];
@@ -218,9 +162,9 @@ export default {
       });
     };
 
-    const touchstart = async (e, item) => {
-      const image = await getCanvasImg({ canvasId: `canvas-block-${item}` });
-      moveImageUrl.value = image;
+    const touchstart = async (e, index) => {
+      const url = blockArr.value[index].url;
+      moveImageUrl.value = url;
     };
 
     const touchmove = (e, item) => {
@@ -238,7 +182,7 @@ export default {
       const maxTop = top + height;
       const maxLeft = left + width;
       const { clientX, clientY } = e.changedTouches[0];
-      const isComplete = completeBlockArr.value.indexOf(item) > 0;
+      const isComplete = false;
       if (
         clientX >= left &&
         clientX <= maxLeft &&
@@ -246,15 +190,24 @@ export default {
         clientY <= maxTop &&
         !isComplete
       ) {
-        drawCanvas({
-          canvasId: "canvas-display",
+        completeBlockArr.value = [...completeBlockArr.value, item];
+        const url = await drawCanvas({
+          width: 300,
+          height: 300,
+          index: item,
+          imageUrl,
+          W,
           isDisplay: true,
+          completeBlockArr: completeBlockArr.value,
         });
 
-        completeBlockArr.value = [...completeBlockArr.value, item];
+        displayUrl.value = url;
         const isWin = checkWin();
         if (isWin) {
-          console.log("win!!!");
+          Taro.atMessage({
+            message: "消息通知",
+            type: "success",
+          });
         }
       }
     };
@@ -265,34 +218,37 @@ export default {
       touchstart,
       touchmove,
       touchend,
-      flatNumArr,
+      completeBlockArr,
       showMovePic,
       movePicWrapPos,
       movePicWrapStyle,
       moveImageUrl,
+      blockArr,
+      displayUrl,
     };
   },
 };
 </script>
 
 <style lang="scss">
-.canvas-content {
+.draw-content {
   height: 100%;
   width: 100%;
-  #canvas-display {
-    margin-top: 8px;
-    margin-bottom: 4px;
-    border-radius: 12px;
-    box-shadow: 0px -10px 0px 0px #ff0000, 10px 0px 0px 0px #2279ee,
-      0px 10px 0px 0px #eede15, -10px 0px 0px 0px #3bee17;
-  }
+
   .display-items {
-    .canvas-container {
+    .display-container {
       display: flex;
       justify-content: center;
       align-content: center;
-      .block-item {
-        text-align: center;
+
+      .display-image {
+        height: 600px;
+        width: 600px;
+        margin-top: 8px;
+        margin-bottom: 4px;
+        border-radius: 12px;
+        box-shadow: 0px -10px 0px 0px #ff0000, 10px 0px 0px 0px #2279ee,
+          0px 10px 0px 0px #eede15, -10px 0px 0px 0px #3bee17;
       }
     }
   }
@@ -300,9 +256,14 @@ export default {
     display: flex;
     justify-content: center;
     align-content: center;
+    height: 600px;
     .block-items-wrap {
       .block-item {
         margin-bottom: 6px;
+        .block-image {
+          height: 200px;
+          width: 200px;
+        }
       }
     }
   }
