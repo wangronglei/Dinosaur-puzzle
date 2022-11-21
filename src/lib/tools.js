@@ -59,7 +59,7 @@ const drawCanvas = async ({
 
 const generateNum = ({ num, BOUND }) => {
   //循环进行拼图打乱
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 100; i++) {
     //随机抽取其中一个数据
     const i1 = Math.round(Math.random() * BOUND);
     const j1 = Math.round(Math.random() * BOUND);

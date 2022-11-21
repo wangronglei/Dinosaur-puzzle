@@ -56,6 +56,7 @@ export default {
       height: 600px;
       width: 600px;
       margin-bottom: 8px;
+      border: 1px #f8ed77 dotted;
     }
   }
 }

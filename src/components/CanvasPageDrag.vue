@@ -205,7 +205,7 @@ export default {
         const isWin = checkWin();
         if (isWin) {
           Taro.atMessage({
-            message: "消息通知",
+            message: "你成功啦！",
             type: "success",
           });
         }
